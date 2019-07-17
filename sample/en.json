@@ -1,0 +1,10 @@
+{
+    "demo": {
+        "title": "Translation demo EN",
+        "text": "This is a simple demonstration app for ngx-translate EN"
+    },
+    "mixed": {
+    	"exists": "yes EN",
+    	"en only": "correct EN"
+    }
+}

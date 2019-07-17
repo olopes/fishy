@@ -1,0 +1,12 @@
+{
+    "demo": {
+        "title": "Translation demo FR",
+        "text": "This is a simple demonstration app for ngx-translate FR"
+    },
+    "mixed": {
+    	"exists": "yes FR"
+    },
+    "exclusive": {
+    	"fr only": "right FR"
+	}
+}
