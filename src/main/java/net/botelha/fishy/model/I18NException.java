@@ -1,4 +1,4 @@
-package net.botelha.fishy;
+package net.botelha.fishy.model;
 
 public class I18NException extends RuntimeException {
 	private static final long serialVersionUID = 1L;

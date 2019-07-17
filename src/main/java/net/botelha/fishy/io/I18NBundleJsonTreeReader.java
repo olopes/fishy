@@ -21,9 +21,9 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
-import net.botelha.fishy.I18NException;
 import net.botelha.fishy.model.I18NBundle;
 import net.botelha.fishy.model.I18NEntry;
+import net.botelha.fishy.model.I18NException;
 
 public class I18NBundleJsonTreeReader implements I18NBundleReader {
 	

@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import net.botelha.fishy.io.I18NBundleJsonTreeReader;
 import net.botelha.fishy.model.I18NBundle;
 import net.botelha.fishy.model.I18NEntry;
+import net.botelha.fishy.model.I18NException;
 
 class I18NBundleJsonTreeReaderTest {
 

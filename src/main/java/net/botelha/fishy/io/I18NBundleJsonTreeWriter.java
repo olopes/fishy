@@ -10,9 +10,9 @@ import java.util.Map;
 
 import com.google.gson.GsonBuilder;
 
-import net.botelha.fishy.I18NException;
 import net.botelha.fishy.model.I18NBundle;
 import net.botelha.fishy.model.I18NEntry;
+import net.botelha.fishy.model.I18NException;
 
 public class I18NBundleJsonTreeWriter implements I18NBundleWriter {
 	
