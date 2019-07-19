@@ -1,15 +1,24 @@
 package net.botelha.fishy.ui;
 
+import static java.awt.KeyboardFocusManager.BACKWARD_TRAVERSAL_KEYS;
+import static java.awt.KeyboardFocusManager.FORWARD_TRAVERSAL_KEYS;
+import static java.awt.event.KeyEvent.VK_TAB;
+
+import java.awt.AWTKeyStroke;
 import java.awt.BorderLayout;
+import java.awt.event.InputEvent;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
 import javax.swing.BorderFactory;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
+import javax.swing.KeyStroke;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 
@@ -48,6 +57,15 @@ public class TranslationField extends JPanel{
 				fireValueChanged();
 			}
 		});
+		
+        Set<AWTKeyStroke> set = new HashSet<>( this.textarea.getFocusTraversalKeys( FORWARD_TRAVERSAL_KEYS ) );
+        set.add( KeyStroke.getKeyStroke(VK_TAB, 0) );
+		this.textarea.setFocusTraversalKeys(FORWARD_TRAVERSAL_KEYS, set);
+		
+        Set<AWTKeyStroke> backSet = new HashSet<>( this.textarea.getFocusTraversalKeys( BACKWARD_TRAVERSAL_KEYS ) );
+        backSet.add( KeyStroke.getKeyStroke(VK_TAB, InputEvent.SHIFT_DOWN_MASK) );
+		this.textarea.setFocusTraversalKeys(BACKWARD_TRAVERSAL_KEYS, backSet);
+		
 		this.setLayout(new BorderLayout());
 		this.add(new JScrollPane(this.textarea), BorderLayout.CENTER);
 		

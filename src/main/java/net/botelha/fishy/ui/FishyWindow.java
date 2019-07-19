@@ -18,6 +18,8 @@ import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
 
 import net.botelha.fishy.io.I18NBundleJsonTreeReader;
 import net.botelha.fishy.io.I18NBundleJsonTreeWriter;
@@ -50,7 +52,7 @@ public class FishyWindow extends JFrame {
 				FishyWindow.this.windowClosing();
 			}
 		});
-		getContentPane().setLayout(new BorderLayout(3,3));
+		getContentPane().setLayout(new BorderLayout());
 		setJMenuBar(createMenu());
 		getContentPane().add(panel, BorderLayout.CENTER);
 		setMinimumSize(new Dimension(500, 150));
@@ -136,6 +138,14 @@ public class FishyWindow extends JFrame {
 	}
 	
 	public static void main(String[] args) {
+		try {
+			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException
+				| UnsupportedLookAndFeelException e) {
+			// silently ignore. log this?
+			e.printStackTrace();
+		}
+		
 		SwingUtilities.invokeLater(() -> new FishyWindow().setVisible(true));
 	}
 
