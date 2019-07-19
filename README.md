@@ -1,11 +1,11 @@
-#Fishy Translator
+# Fishy Translator
 
 Simple translation tool for i18n resources in JSON format based on [ResourceBundle Editor plugin for Eclipse](https://essiembre.github.io/eclipse-rbe/).
 
 This tool is released under a permissive MIT license.
 
 
-##Usage
+## Usage
 
 
 Make sure that you have Java 8 or newer.
@@ -17,7 +17,7 @@ java -jar fishy.jar
 
 Select (open) the folder containing the i18n files.
 
-##Build
+## Build
 
 Download or clone the repository and run maven:
 ```
