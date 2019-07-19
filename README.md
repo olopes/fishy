@@ -30,3 +30,9 @@ Alternatively you can run the application directly from maven:
 ./mvnw exec:java
 ```
 
+## License
+
+Code licensed under the [MIT License](LICENSE.txt).
+
+
+
