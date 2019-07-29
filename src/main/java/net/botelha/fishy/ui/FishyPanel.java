@@ -3,6 +3,7 @@ package net.botelha.fishy.ui;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
+import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -22,6 +23,8 @@ import javax.swing.JTextField;
 import javax.swing.JTree;
 import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.event.TreeModelEvent;
 import javax.swing.event.TreeModelListener;
 import javax.swing.tree.TreePath;
@@ -42,7 +45,7 @@ public class FishyPanel extends JPanel {
 	private I18NEntryTreeRenderer treeCellRenderer;
 	private TranslationsPanel translations;
 	private boolean modified = false;
-	private JTextField currentPath;
+	private JTextField searchBox;
 	private JPopupMenu treeContextMenu;
 	
 	/* tree context menu actions */
@@ -50,6 +53,7 @@ public class FishyPanel extends JPanel {
 	private Action treeClone = new FishyAction("treeClone", this::duplicateEntry);
 	private Action treeRename = new FishyAction("treeRename", this::renameEntry);
 	private Action treeDelete = new FishyAction("treeDelete", this::deleteEntry);
+	private Action treeGoTo = new FishyAction("treeGoTo", this::gotoEntry);
 
 	public FishyPanel() {
 		setupUI();
@@ -68,8 +72,10 @@ public class FishyPanel extends JPanel {
 		
 		this.tree.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), "treeDelete");
 		this.tree.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_F2, 0), "treeRename");
+		this.tree.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_G, InputEvent.CTRL_MASK), "treeGoTo");
 		this.tree.getActionMap().put("treeDelete", treeDelete);
 		this.tree.getActionMap().put("treeRename", treeRename);
+		this.tree.getActionMap().put("treeGoTo", treeGoTo);
 		this.tree.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mousePressed(MouseEvent e) {
@@ -91,14 +97,29 @@ public class FishyPanel extends JPanel {
 		selectionModel.setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
 		selectionModel.addTreeSelectionListener(e -> treeNodeSelected(e.getPath()));
 		
-		this.currentPath = new JTextField();
-		this.currentPath.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "setTreePath");
-		this.currentPath.getActionMap().put("setTreePath", new FishyAction("setTreePath", this::setTreePath));
-		this.currentPath.setEnabled(false);
+		this.searchBox = new JTextField();
+		this.searchBox.setEnabled(false);
+		this.searchBox.getDocument().addDocumentListener(new DocumentListener() {
+			
+			@Override
+			public void removeUpdate(DocumentEvent e) {
+				searchTree();
+			}
+			
+			@Override
+			public void insertUpdate(DocumentEvent e) {
+				searchTree();
+			}
+			
+			@Override
+			public void changedUpdate(DocumentEvent e) {
+				searchTree();
+			}
+		});
 		
 		JPanel treeAndPathPanel = new JPanel(new BorderLayout());
 		treeAndPathPanel.add(new JScrollPane(this.tree), BorderLayout.CENTER);
-		treeAndPathPanel.add(this.currentPath, BorderLayout.NORTH);
+		treeAndPathPanel.add(this.searchBox, BorderLayout.NORTH);
 		
 		this.translations = new TranslationsPanel();
 		this.translations.addTranslationChangedListener(this::translationChanged);
@@ -125,9 +146,12 @@ public class FishyPanel extends JPanel {
 	private JPopupMenu createPopupMenu() {
 		JPopupMenu popup = new JPopupMenu("Fishy");
 		popup.add(createMenuItem("New entry", treeInsert));
+		popup.addSeparator();
 		popup.add(createMenuItem("Duplicate entry", treeClone));
 		popup.add(createMenuItem("Rename entry", treeRename));
 		popup.add(createMenuItem("Delete entry", treeDelete));
+		popup.addSeparator();
+		popup.add(createMenuItem("Go to entry", treeGoTo));
 		return popup;
 	}
 	private JMenuItem createMenuItem(String label, Action action) {
@@ -137,9 +161,10 @@ public class FishyPanel extends JPanel {
 	}
 
 	private void bundleUpdated() {
-		this.currentPath.setEnabled(!bundle.getLocales().isEmpty());
+		this.searchBox.setEnabled(!bundle.getLocales().isEmpty());
 		this.tree.setEnabled(!bundle.getLocales().isEmpty());
 		this.treeCellRenderer.setLocales(bundle.getLocales());
+		this.treeCellRenderer.setRoot(bundle.getRoot());
 		this.translations.setLocales(bundle.getLocales());
 		this.treeModel.setRoot(this.bundle.getRoot());
 		expandAllNodes(0, this.tree.getRowCount());
@@ -165,13 +190,12 @@ public class FishyPanel extends JPanel {
 	
 	private void treeNodeSelected(TreePath path) {
 		translations.setI18NPath(path);
-		this.currentPath.setText(treePathToString(path));
 	}
 	
-	private void setTreePath(ActionEvent e) {
-		String pathStr = this.currentPath.getText();
-		TreePath treePath = this.treeModel.findOrCreateTreePath(pathStr);
-		this.tree.setSelectionPath(treePath);
+	private void searchTree() {
+		String query = this.searchBox.getText();
+		this.treeCellRenderer.setFilter(query);
+		this.tree.repaint();
 	}
 	
 	private void insertNewEntry(ActionEvent evt) {
@@ -243,6 +267,19 @@ public class FishyPanel extends JPanel {
 		String message = String.format("Are you sure you want to delete the entry \"%s\" ?", pathString); 
 		int selectedOption = JOptionPane.showConfirmDialog(this, message, "Delete", JOptionPane.OK_CANCEL_OPTION);
 		return selectedOption == JOptionPane.OK_OPTION;
+	}
+	
+	private void gotoEntry(ActionEvent evt) {
+		String selectedName = JOptionPane.showInputDialog(this, "Go to entry:");
+		if(selectedName == null) {
+			return;
+		}
+		TreePath selectedPath = treeModel.findTreePath(selectedName);
+		if(selectedPath != null) {
+			this.tree.setSelectionPath(selectedPath);
+		} else if(JOptionPane.showConfirmDialog(this, String.format("Entry was '%s' not found. Do you want to create a new one?", selectedName)) == JOptionPane.OK_OPTION) {
+			treeModel.findOrCreateTreePath(selectedName);
+		}
 	}
 	
 	private String treePathToString(TreePath path) {

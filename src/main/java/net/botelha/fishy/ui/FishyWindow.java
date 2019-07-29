@@ -63,10 +63,14 @@ public class FishyWindow extends JFrame {
 	private void windowClosing() {
 		if(panel.isModified()) {
 			int confirmed = JOptionPane.showConfirmDialog(this, 
-					"Are you sure you want to exit the program?", "Exit Program Message Box",
-					JOptionPane.YES_NO_OPTION);
-			if (confirmed != JOptionPane.YES_OPTION) {
+					"You are about to leave Fishy Translator.\nDo you want to save your changes?", "Exit Program Message Box",
+					JOptionPane.YES_NO_CANCEL_OPTION);
+			if (confirmed == JOptionPane.CANCEL_OPTION) {
 				return;
+			}
+			
+			if(confirmed == JOptionPane.YES_OPTION) {
+				saveBundle();
 			}
 		}
 		dispose();
@@ -112,7 +116,18 @@ public class FishyWindow extends JFrame {
 	}
 
 	private void openActionPerformed(ActionEvent e) {
-		
+		openBundle();
+	}
+	
+	private void saveActionPerformed(ActionEvent e) {
+		saveBundle();
+	}
+	
+	private void quitActionPerformed(ActionEvent e) {
+		windowClosing();
+	}
+	
+	private void openBundle() {
 		JFileChooser jfc = new JFileChooser(openedFile == null ? new File(".") : openedFile);
 		jfc.setSelectedFile(openedFile);
 		jfc.setDialogTitle("Please select the translations folder");
@@ -128,18 +143,14 @@ public class FishyWindow extends JFrame {
 		panel.setBundle(new I18NBundleJsonTreeReader().read(this.openedFile));
 	}
 	
-	private void saveActionPerformed(ActionEvent e) {
+	private void saveBundle() {
 		new I18NBundleJsonTreeWriter().write(panel.getBundle(), this.openedFile);
 		this.panel.bundleSaved();
 	}
 	
-	private void quitActionPerformed(ActionEvent e) {
-		windowClosing();
-	}
-	
 	public static void main(String[] args) {
 		try {
-			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+			UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
 		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException
 				| UnsupportedLookAndFeelException e) {
 			// silently ignore. log this?
