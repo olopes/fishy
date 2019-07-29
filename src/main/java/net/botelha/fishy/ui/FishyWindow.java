@@ -18,8 +18,6 @@ import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
-import javax.swing.UIManager;
-import javax.swing.UnsupportedLookAndFeelException;
 
 import net.botelha.fishy.io.I18NBundleJsonTreeReader;
 import net.botelha.fishy.io.I18NBundleJsonTreeWriter;
@@ -149,14 +147,6 @@ public class FishyWindow extends JFrame {
 	}
 	
 	public static void main(String[] args) {
-		try {
-			UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
-		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException
-				| UnsupportedLookAndFeelException e) {
-			// silently ignore. log this?
-			e.printStackTrace();
-		}
-		
 		SwingUtilities.invokeLater(() -> new FishyWindow().setVisible(true));
 	}
 

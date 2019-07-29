@@ -3,12 +3,14 @@ package net.botelha.fishy.ui;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
-import java.awt.event.InputEvent;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import javax.swing.Action;
@@ -60,23 +62,67 @@ public class FishyPanel extends JPanel {
 	}
 
 	private void setupUI() {
-		this.treeContextMenu = createPopupMenu();
+		this.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_G, ActionEvent.CTRL_MASK), "treeGoTo");
+		this.getActionMap().put("treeGoTo", treeGoTo);
+		
+		createPopupMenu();
+		
+		createEntryTree();
+		
+		createQuickSearchBox();
+		
+		createTranslationsPanel();
+		
+		this.setLayout(new BorderLayout());
+		this.add(createSplitPanel(), BorderLayout.CENTER);
+		
+	}
+
+	public I18NBundle getBundle() {
+		return bundle;
+	}
+	
+	public void setBundle(I18NBundle bundle) {
+		this.bundle = bundle;
+		bundleUpdated();
+	}
+	
+	private void createPopupMenu() {
+		JPopupMenu popup = new JPopupMenu("Fishy");
+		popup.add(createMenuItem("New entry", treeInsert));
+		popup.addSeparator();
+		popup.add(createMenuItem("Duplicate entry", treeClone));
+		popup.add(createMenuItem("Rename entry", treeRename));
+		popup.add(createMenuItem("Delete entry", treeDelete));
+		popup.addSeparator();
+		popup.add(createMenuItem("Go to entry", treeGoTo));
+		this.treeContextMenu = popup;
+	}
+	private JMenuItem createMenuItem(String label, Action action) {
+		JMenuItem item = new JMenuItem(action);
+		item.setText(label);
+		return item;
+	}
+
+	private void createEntryTree() {
 		this.treeModel = new I18NBundleTreeModel();
 		this.treeModel.addTreeModelListener(new I18NTreeModelListener());
 		this.treeCellRenderer = new I18NEntryTreeRenderer();
 		
-		this.tree = new JTree(this.treeModel);
-		this.tree.setCellRenderer(this.treeCellRenderer);
-		this.tree.setRootVisible(false);
-		this.tree.setEnabled(false);
+		final JTree tree = new JTree(this.treeModel);
+		tree.setCellRenderer(this.treeCellRenderer);
+		tree.setRootVisible(false);
+		tree.setEnabled(false);
 		
-		this.tree.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), "treeDelete");
-		this.tree.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_F2, 0), "treeRename");
-		this.tree.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_G, InputEvent.CTRL_MASK), "treeGoTo");
-		this.tree.getActionMap().put("treeDelete", treeDelete);
-		this.tree.getActionMap().put("treeRename", treeRename);
-		this.tree.getActionMap().put("treeGoTo", treeGoTo);
-		this.tree.addMouseListener(new MouseAdapter() {
+		tree.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), "treeDelete");
+		tree.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_F2, 0), "treeRename");
+		tree.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_N, ActionEvent.CTRL_MASK), "treeInsert");
+		tree.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_INSERT, 0), "treeInsert");
+		tree.getActionMap().put("treeDelete", treeDelete);
+		tree.getActionMap().put("treeRename", treeRename);
+		tree.getActionMap().put("treeInsert", treeInsert);
+		
+		tree.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mousePressed(MouseEvent e) {
 				if (tree.isEnabled() && SwingUtilities.isRightMouseButton(e)) {
@@ -93,71 +139,48 @@ public class FishyPanel extends JPanel {
 			}
 		});
 		
-		TreeSelectionModel selectionModel = this.tree.getSelectionModel();
+		TreeSelectionModel selectionModel = tree.getSelectionModel();
 		selectionModel.setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
 		selectionModel.addTreeSelectionListener(e -> treeNodeSelected(e.getPath()));
 		
-		this.searchBox = new JTextField();
-		this.searchBox.setEnabled(false);
-		this.searchBox.getDocument().addDocumentListener(new DocumentListener() {
-			
+		this.tree = tree;
+		
+		expandAllNodes(0, tree.getRowCount());
+	}
+
+	private void createQuickSearchBox() {
+		final JTextField searchBox = new JTextField();
+		searchBox.setEnabled(false);
+		searchBox.getDocument().addDocumentListener(new TextChangedListener(e -> searchTree()));
+		searchBox.addFocusListener(new FocusAdapter() {
 			@Override
-			public void removeUpdate(DocumentEvent e) {
-				searchTree();
-			}
-			
-			@Override
-			public void insertUpdate(DocumentEvent e) {
-				searchTree();
-			}
-			
-			@Override
-			public void changedUpdate(DocumentEvent e) {
-				searchTree();
+			public void focusGained(FocusEvent e) {
+				searchBox.selectAll();
 			}
 		});
-		
-		JPanel treeAndPathPanel = new JPanel(new BorderLayout());
-		treeAndPathPanel.add(new JScrollPane(this.tree), BorderLayout.CENTER);
-		treeAndPathPanel.add(this.searchBox, BorderLayout.NORTH);
-		
+		searchBox.setToolTipText("Quick search");
+		this.searchBox = searchBox;
+	}
+
+	private void createTranslationsPanel() {
 		this.translations = new TranslationsPanel();
 		this.translations.addTranslationChangedListener(this::translationChanged);
-		
-		this.setLayout(new BorderLayout());
+	}
+
+	private JSplitPane createSplitPanel() {
 		JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,
-				treeAndPathPanel, new JScrollPane(this.translations));
+				createTreeAndSearchPanel(), new JScrollPane(this.translations));
 		splitPane.setDividerLocation(150);
 		splitPane.getLeftComponent().setMinimumSize(new Dimension(150, 150));
 		splitPane.getRightComponent().setMinimumSize(new Dimension(250, 150));
-		this.add(splitPane, BorderLayout.CENTER);
-		expandAllNodes(0, this.tree.getRowCount());
+		return splitPane;
 	}
-	
-	public I18NBundle getBundle() {
-		return bundle;
-	}
-	
-	public void setBundle(I18NBundle bundle) {
-		this.bundle = bundle;
-		bundleUpdated();
-	}
-	
-	private JPopupMenu createPopupMenu() {
-		JPopupMenu popup = new JPopupMenu("Fishy");
-		popup.add(createMenuItem("New entry", treeInsert));
-		popup.addSeparator();
-		popup.add(createMenuItem("Duplicate entry", treeClone));
-		popup.add(createMenuItem("Rename entry", treeRename));
-		popup.add(createMenuItem("Delete entry", treeDelete));
-		popup.addSeparator();
-		popup.add(createMenuItem("Go to entry", treeGoTo));
-		return popup;
-	}
-	private JMenuItem createMenuItem(String label, Action action) {
-		JMenuItem item = new JMenuItem(action);
-		item.setText(label);
-		return item;
+
+	private JPanel createTreeAndSearchPanel() {
+		JPanel treeAndPathPanel = new JPanel(new BorderLayout());
+		treeAndPathPanel.add(new JScrollPane(this.tree), BorderLayout.CENTER);
+		treeAndPathPanel.add(this.searchBox, BorderLayout.NORTH);
+		return treeAndPathPanel;
 	}
 
 	private void bundleUpdated() {
@@ -323,6 +346,29 @@ public class FishyPanel extends JPanel {
 		@Override
 		public void treeNodesChanged(TreeModelEvent e) {
 			bundleModified();
+		}
+	}
+	
+	private static class TextChangedListener implements DocumentListener {
+		final Consumer<DocumentEvent> changeListener;
+		
+		TextChangedListener(Consumer<DocumentEvent> changeListener) {
+			this.changeListener = changeListener;
+		}
+		
+		@Override
+		public void removeUpdate(DocumentEvent e) {
+			this.changeListener.accept(e);
+		}
+		
+		@Override
+		public void insertUpdate(DocumentEvent e) {
+			this.changeListener.accept(e);
+		}
+		
+		@Override
+		public void changedUpdate(DocumentEvent e) {
+			this.changeListener.accept(e);
 		}
 	}
 
